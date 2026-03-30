@@ -1,16 +1,15 @@
+//src/screens/CanvasSelectionPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { CANVAS } from "../utils/constants"; // Importing our constants
 
 const CanvasSelectionPage = () => {
   const navigate = useNavigate();
 
-  // Constraints
-  const MIN_WIDTH = 400, MIN_HEIGHT = 300;
-  const MAX_WIDTH = 1920, MAX_HEIGHT = 1080;
-
-  const [width, setWidth] = useState(800);
-  const [height, setHeight] = useState(600);
+  // State initialized with constants
+  const [width, setWidth] = useState(CANVAS.DEFAULT_WIDTH);
+  const [height, setHeight] = useState(CANVAS.DEFAULT_HEIGHT);
   const [error, setError] = useState("");
 
   const presets = [
@@ -19,12 +18,12 @@ const CanvasSelectionPage = () => {
     { name: "FHD", w: 1920, h: 1080, icon: "🖥️" },
   ];
 
-  // Validation logic
+  // Validation Logic using centralized constants
   useEffect(() => {
-    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-      setError(`Max limit exceeded: ${MAX_WIDTH}x${MAX_HEIGHT}`);
-    } else if (width < MIN_WIDTH || height < MIN_HEIGHT) {
-      setError(`Minimum required: ${MIN_WIDTH}x${MIN_HEIGHT}`);
+    if (width > CANVAS.MAX_WIDTH || height > CANVAS.MAX_HEIGHT) {
+      setError(`Max limit exceeded: ${CANVAS.MAX_WIDTH}x${CANVAS.MAX_HEIGHT}`);
+    } else if (width < CANVAS.MIN_WIDTH || height < CANVAS.MIN_HEIGHT) {
+      setError(`Minimum required: ${CANVAS.MIN_WIDTH}x${CANVAS.MIN_HEIGHT}`);
     } else {
       setError("");
     }
@@ -32,21 +31,32 @@ const CanvasSelectionPage = () => {
 
   const handleNext = () => {
     if (!error) {
-      navigate("/editor", { state: { width, height } });
+      // Navigating to 2D Editor with dimensions in state
+      navigate("/2d", { state: { width, height } });
     }
   };
+
+  // Helper for responsive preview box (Calculates scale to fit container)
+  const getPreviewSize = () => {
+    const maxContainerSize = 160; 
+    const ratio = width / height;
+    return width > height 
+      ? { w: maxContainerSize, h: maxContainerSize / ratio }
+      : { w: maxContainerSize * ratio, h: maxContainerSize };
+  };
+
+  const previewDim = getPreviewSize();
 
   return (
     <div style={styles.container}>
       <div style={styles.bgGlow}></div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         style={styles.card}
       >
-        <header style={{ marginBottom: "30px" }}>
+        <header style={{ marginBottom: "25px" }}>
           <h2 style={styles.title}>Canvas <span style={{color: '#00d2ff'}}>Studio</span></h2>
           <p style={styles.subtitle}>Define your workspace dimensions</p>
         </header>
@@ -54,66 +64,71 @@ const CanvasSelectionPage = () => {
         {/* Manual Inputs */}
         <div style={styles.inputRow}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Width</label>
+            <label style={styles.label}>Width (px)</label>
             <input 
               type="number" 
               value={width} 
-              onChange={(e) => setWidth(Math.max(0, parseInt(e.target.value) || 0))} 
-              style={{...styles.input, borderColor: error && width > MAX_WIDTH ? "#ff4757" : "rgba(255,255,255,0.1)"}}
+              onChange={(e) => setWidth(parseInt(e.target.value) || 0)} 
+              style={{...styles.input, borderColor: error && width > CANVAS.MAX_WIDTH ? "#ff4757" : "rgba(255,255,255,0.1)"}}
             />
           </div>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Height</label>
+            <label style={styles.label}>Height (px)</label>
             <input 
               type="number" 
               value={height} 
-              onChange={(e) => setHeight(Math.max(0, parseInt(e.target.value) || 0))} 
-              style={{...styles.input, borderColor: error && height > MAX_HEIGHT ? "#ff4757" : "rgba(255,255,255,0.1)"}}
+              onChange={(e) => setHeight(parseInt(e.target.value) || 0)} 
+              style={{...styles.input, borderColor: error && height > CANVAS.MAX_HEIGHT ? "#ff4757" : "rgba(255,255,255,0.1)"}}
             />
           </div>
         </div>
 
-        {/* Presets Grid */}
+        {/* Presets */}
         <div style={styles.presetsGrid}>
           {presets.map((p) => {
             const isActive = width === p.w && height === p.h;
             return (
               <motion.div
                 key={p.name}
-                whileHover={{ y: -5 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => { setWidth(p.w); setHeight(p.h); }}
                 style={{
                   ...styles.presetCard,
                   borderColor: isActive ? "#00d2ff" : "rgba(255,255,255,0.1)",
-                  backgroundColor: isActive ? "rgba(0, 210, 255, 0.15)" : "rgba(255,255,255,0.03)"
+                  backgroundColor: isActive ? "rgba(0, 210, 255, 0.12)" : "rgba(255,255,255,0.03)"
                 }}
               >
-                <span style={{ fontSize: "20px" }}>{p.icon}</span>
+                <span style={{ fontSize: "18px" }}>{p.icon}</span>
                 <span style={styles.presetName}>{p.name}</span>
               </motion.div>
             );
           })}
         </div>
 
-        {/* Visual Preview */}
+        {/* Aspect Ratio Preview */}
         <div style={styles.previewWrapper}>
             <motion.div 
-                animate={{ 
-                    aspectRatio: `${width}/${height}`,
-                }}
+                animate={{ width: previewDim.w, height: previewDim.h }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
                 style={styles.previewBox}
             >
                 <div style={styles.dimensionTag}>{width} x {height}</div>
             </motion.div>
         </div>
 
-        {/* Error Message */}
-        <div style={{ height: "20px", marginBottom: "15px" }}>
-            <AnimatePresence>
+        {/* Error Feedback */}
+        <div style={{ height: "24px", margin: "10px 0" }}>
+            <AnimatePresence mode="wait">
                 {error && (
-                    <motion.p initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={styles.errorText}>
-                        {error}
+                    <motion.p 
+                      key={error}
+                      initial={{ opacity: 0, x: -10 }} 
+                      animate={{ opacity: 1, x: 0 }} 
+                      exit={{ opacity: 0, x: 10 }} 
+                      style={styles.errorText}
+                    >
+                        ⚠️ {error}
                     </motion.p>
                 )}
             </AnimatePresence>
@@ -121,12 +136,12 @@ const CanvasSelectionPage = () => {
 
         <motion.button 
           disabled={!!error}
-          whileHover={!error ? { scale: 1.02, backgroundColor: "#00e5ff" } : {}}
+          whileHover={!error ? { scale: 1.02, boxShadow: "0 0 20px rgba(0, 210, 255, 0.4)" } : {}}
           whileTap={!error ? { scale: 0.98 } : {}}
-          style={{...styles.nextButton, opacity: error ? 0.5 : 1, cursor: error ? "not-allowed" : "pointer"}} 
+          style={{...styles.nextButton, opacity: error ? 0.4 : 1, cursor: error ? "not-allowed" : "pointer"}} 
           onClick={handleNext}
         >
-          Launch Editor
+          Launch 2D Editor
         </motion.button>
       </motion.div>
     </div>
@@ -137,55 +152,53 @@ const styles = {
   container: {
     height: "100vh", width: "100%", backgroundColor: "#0a0f1a",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontFamily: "'Inter', system-ui, sans-serif", color: "#fff",
-    overflow: "hidden", position: "relative",
+    fontFamily: "'Inter', sans-serif", color: "#fff", overflow: "hidden", position: "relative",
   },
   bgGlow: {
     position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-    width: "80vw", height: "80vh", pointerEvents: "none",
-    background: "radial-gradient(circle, rgba(0, 210, 255, 0.08) 0%, rgba(10, 15, 26, 0) 70%)",
-    filter: "blur(100px)",
+    width: "70vw", height: "70vh", pointerEvents: "none",
+    background: "radial-gradient(circle, rgba(0, 210, 255, 0.1) 0%, rgba(10, 15, 26, 0) 70%)",
+    filter: "blur(80px)",
   },
   card: {
-    width: "450px", padding: "40px", borderRadius: "32px",
-    backgroundColor: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(20px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 30px 60px rgba(0,0,0,0.4)",
-    zIndex: 1,
+    width: "420px", padding: "35px", borderRadius: "28px",
+    backgroundColor: "rgba(15, 23, 42, 0.7)", backdropFilter: "blur(15px)",
+    border: "1px solid rgba(255, 255, 255, 0.1)", boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
+    zIndex: 2,
   },
-  title: { fontSize: "32px", fontWeight: "800", margin: "0 0 10px 0", letterSpacing: "-1px" },
-  subtitle: { fontSize: "15px", color: "#64748b", margin: 0 },
-  inputRow: { display: "flex", gap: "20px", marginTop: "30px" },
+  title: { fontSize: "28px", fontWeight: "800", margin: "0 0 8px 0" },
+  subtitle: { fontSize: "14px", color: "#94a3b8", margin: 0 },
+  inputRow: { display: "flex", gap: "15px", marginTop: "25px" },
   inputGroup: { flex: 1 },
-  label: { display: "block", fontSize: "11px", color: "#475569", marginBottom: "8px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px" },
+  label: { display: "block", fontSize: "10px", color: "#64748b", marginBottom: "6px", fontWeight: "700", textTransform: "uppercase" },
   input: {
-    width: "100%", padding: "14px", backgroundColor: "rgba(0,0,0,0.3)",
-    border: "1px solid", borderRadius: "12px", color: "#fff",
-    fontSize: "16px", outline: "none", transition: "all 0.3s ease", boxSizing: "border-box"
+    width: "100%", padding: "12px", backgroundColor: "rgba(0,0,0,0.2)",
+    border: "1px solid", borderRadius: "10px", color: "#fff",
+    fontSize: "15px", outline: "none", transition: "border 0.2s ease", boxSizing: "border-box"
   },
-  presetsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", margin: "25px 0" },
+  presetsGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", margin: "20px 0" },
   presetCard: {
-    padding: "12px", borderRadius: "16px", border: "1px solid",
+    padding: "10px", borderRadius: "14px", border: "1px solid",
     cursor: "pointer", display: "flex", flexDirection: "column",
-    alignItems: "center", gap: "6px", transition: "all 0.2s ease"
+    alignItems: "center", gap: "4px", transition: "all 0.2s ease"
   },
-  presetName: { fontSize: "12px", fontWeight: "600" },
+  presetName: { fontSize: "11px", fontWeight: "600" },
   previewWrapper: {
-    height: "140px", width: "100%", backgroundColor: "rgba(0,0,0,0.2)",
-    borderRadius: "16px", display: "flex", alignItems: "center",
-    justifyContent: "center", padding: "20px", boxSizing: "border-box"
+    height: "170px", width: "100%", backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: "14px", display: "flex", alignItems: "center",
+    justifyContent: "center", padding: "15px", boxSizing: "border-box"
   },
   previewBox: {
-    maxHeight: "100%", maxWidth: "100%", border: "2px solid #00d2ff",
-    borderRadius: "6px", display: "flex", alignItems: "center",
-    justifyContent: "center", position: "relative",
+    border: "2px solid #00d2ff", borderRadius: "4px", display: "flex",
+    alignItems: "center", justifyContent: "center", position: "relative",
     backgroundColor: "rgba(0, 210, 255, 0.05)",
   },
-  dimensionTag: { fontSize: "10px", color: "#00d2ff", fontWeight: "bold", position: "absolute" },
-  errorText: { color: "#ff4757", fontSize: "13px", margin: 0, fontWeight: "500" },
+  dimensionTag: { fontSize: "9px", color: "#00d2ff", fontWeight: "bold", position: "absolute", background: "#0a0f1a", padding: "2px 4px", borderRadius: "4px" },
+  errorText: { color: "#ff4757", fontSize: "12px", margin: 0, textAlign: "center", fontWeight: "500" },
   nextButton: {
-    width: "100%", padding: "16px", borderRadius: "16px",
+    width: "100%", padding: "15px", borderRadius: "12px",
     border: "none", backgroundColor: "#00d2ff", color: "#0a0f1a",
-    fontSize: "16px", fontWeight: "700", transition: "all 0.3s ease"
+    fontSize: "15px", fontWeight: "700", transition: "all 0.3s ease"
   },
 };
 

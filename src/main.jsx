@@ -5,11 +5,16 @@ import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 
+import { EditorProvider } from "./context/EditorContext";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <EditorProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </EditorProvider>
   </React.StrictMode>
 );
+
 

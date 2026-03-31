@@ -30,11 +30,18 @@ const CanvasSelectionPage = () => {
   }, [width, height]);
 
   const handleNext = () => {
-    if (!error) {
-      // Navigating to 2D Editor with dimensions in state
-      navigate("/2d", { state: { width, height } });
-    }
-  };
+  if (!error) {
+    navigate("/canvas-background", {
+      state: { width, height }
+    });
+  }
+};
+  // const handleNext = () => {
+  //   if (!error) {
+  //     // Navigating to 2D Editor with dimensions in state
+  //     navigate("/2d", { state: { width, height } });
+  //   }
+  // };
 
   // Helper for responsive preview box (Calculates scale to fit container)
   const getPreviewSize = () => {
@@ -141,7 +148,7 @@ const CanvasSelectionPage = () => {
           style={{...styles.nextButton, opacity: error ? 0.4 : 1, cursor: error ? "not-allowed" : "pointer"}} 
           onClick={handleNext}
         >
-          Launch 2D Editor
+          Next
         </motion.button>
       </motion.div>
     </div>

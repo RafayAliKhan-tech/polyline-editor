@@ -1,9 +1,16 @@
 // src/App.jsx
 import React from "react";
 import AppRoutes from "./routes/appRoutes";
+import { useEditor } from "./context/EditorContext";
 
 function App() {
-  return <AppRoutes />;
+  const { mode, setMode } = useEditor();
+
+  return  (
+    <>
+      <AppRoutes />
+    </>
+  ); 
 }
 
 export default App;

@@ -8,7 +8,7 @@ const Renderer3D = ({ polylines = [] }) => {
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
-  const lineGroupRef = useRef(null);
+  const meshGroupRef = useRef(null);
   const animationRef = useRef(null);
 
   const rotationRef = useRef({ x: 0, y: 0 });
@@ -31,7 +31,7 @@ const Renderer3D = ({ polylines = [] }) => {
       0.1,
       1000
     );
-    camera.position.set(0, 0, 10);
+    camera.position.set(0, 0, 20);
     cameraRef.current = camera;
 
     // ===== RENDERER =====
@@ -40,39 +40,92 @@ const Renderer3D = ({ polylines = [] }) => {
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // ===== LIGHT =====
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    // ===== LIGHTS (IMPROVED) =====
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    dirLight.position.set(5, 5, 5);
-    scene.add(dirLight);
+    const keyLight = new THREE.PointLight(0xffffff, 1);
+    keyLight.position.set(10, 10, 10);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.PointLight(0xffffff, 0.5);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    rimLight.position.set(0, 10, -10);
+    scene.add(rimLight);
 
     // ===== GRID + AXES =====
     scene.add(new THREE.GridHelper(50, 50));
     scene.add(new THREE.AxesHelper(5));
 
-    // ===== LINE GROUP =====
-    const lineGroup = new THREE.Group();
-    scene.add(lineGroup);
-    lineGroupRef.current = lineGroup;
+    // ===== MESH GROUP =====
+    const meshGroup = new THREE.Group();
+    scene.add(meshGroup);
+    meshGroupRef.current = meshGroup;
 
-    // ===== SAFE GET VERTICES =====
+    // ===== HELPERS =====
     const getVertices = (poly) => {
       if (!poly) return [];
-
       if (typeof poly.getVertices === "function") return poly.getVertices();
       if (Array.isArray(poly.vertices)) return poly.vertices;
       if (Array.isArray(poly.points)) return poly.points;
-
       return [];
+    };
+
+    const createMaterial = () =>
+      new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        metalness: 0.6,
+        roughness: 0.25,
+      });
+
+    const centerGeometry = (geometry) => {
+      geometry.computeBoundingBox();
+      const center = new THREE.Vector3();
+      geometry.boundingBox.getCenter(center);
+      geometry.translate(-center.x, -center.y, -center.z);
+    };
+
+    const isRectangle = (verts) => {
+      if (verts.length !== 4) return false;
+
+      const dx1 = Math.abs(verts[0].x - verts[1].x);
+      const dy1 = Math.abs(verts[0].y - verts[1].y);
+      const dx2 = Math.abs(verts[1].x - verts[2].x);
+      const dy2 = Math.abs(verts[1].y - verts[2].y);
+
+      return (dx1 === 0 || dy1 === 0) && (dx2 === 0 || dy2 === 0);
+    };
+
+    const isCircle = (verts) => {
+      if (verts.length < 6) return false;
+
+      let cx = 0,
+        cy = 0;
+      verts.forEach((v) => {
+        cx += v.x;
+        cy += v.y;
+      });
+      cx /= verts.length;
+      cy /= verts.length;
+
+      const distances = verts.map((v) =>
+        Math.hypot(v.x - cx, v.y - cy)
+      );
+
+      const avg =
+        distances.reduce((a, b) => a + b, 0) / distances.length;
+
+      return distances.every((d) => Math.abs(d - avg) < avg * 0.2);
     };
 
     // ===== DRAW FUNCTION =====
     const drawPolylines = () => {
-      // cleanup old lines
-      while (lineGroup.children.length > 0) {
-        const obj = lineGroup.children[0];
-        lineGroup.remove(obj);
+      while (meshGroup.children.length > 0) {
+        const obj = meshGroup.children[0];
+        meshGroup.remove(obj);
         obj.geometry?.dispose();
         obj.material?.dispose();
       }
@@ -81,23 +134,69 @@ const Renderer3D = ({ polylines = [] }) => {
         const verts = getVertices(poly);
         if (!verts || verts.length < 2) return;
 
-        const points = verts.map(
-          (v) =>
-            new THREE.Vector3(
-              (v.x || 0) / 50,
-              -(v.y || 0) / 50,
-              (v.z || 0) / 50
-            )
-        );
+        let geometry;
 
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        // RECTANGLE → BOX
+        if (isRectangle(verts)) {
+          const width = Math.abs(verts[0].x - verts[1].x) / 50 || 1;
+          const height = Math.abs(verts[1].y - verts[2].y) / 50 || 1;
+          const depth = 3;
 
-        const material = new THREE.LineBasicMaterial({
-          color: 0x00ff88,
-        });
+          geometry = new THREE.BoxGeometry(width, height, depth);
+        }
 
-        const line = new THREE.Line(geometry, material);
-        lineGroup.add(line);
+        // CIRCLE → CYLINDER
+        else if (isCircle(verts)) {
+          let cx = 0,
+            cy = 0;
+          verts.forEach((v) => {
+            cx += v.x;
+            cy += v.y;
+          });
+          cx /= verts.length;
+          cy /= verts.length;
+
+          const radius =
+            Math.hypot(verts[0].x - cx, verts[0].y - cy) / 50;
+
+          geometry = new THREE.CylinderGeometry(radius, radius, 3, 32);
+        }
+
+        // FALLBACK → EXTRUDE
+        else {
+          const shapePoints = verts.map(
+            (v) =>
+              new THREE.Vector2(
+                (v.x || 0) / 50,
+                -(v.y || 0) / 50
+              )
+          );
+
+          const shape = new THREE.Shape(shapePoints);
+
+          geometry = new THREE.ExtrudeGeometry(shape, {
+            depth: 2,
+            bevelEnabled: true,
+            bevelThickness: 0.2,
+            bevelSize: 0.1,
+            bevelSegments: 2,
+          });
+        }
+
+        // Center geometry
+        centerGeometry(geometry);
+
+        const mesh = new THREE.Mesh(geometry, createMaterial());
+
+        // ===== EDGE OUTLINES =====
+        // const edges = new THREE.EdgesGeometry(geometry);
+        // const edgeLines = new THREE.LineSegments(
+        //   edges,
+        //   new THREE.LineBasicMaterial({ color: 0xffffff })
+        // );
+        // mesh.add(edgeLines);
+
+        meshGroup.add(mesh);
       });
     };
 
@@ -124,8 +223,8 @@ const Renderer3D = ({ polylines = [] }) => {
     };
 
     const onWheel = (e) => {
-      camera.position.z += e.deltaY * 0.01;
-      camera.position.z = Math.max(2, Math.min(50, camera.position.z));
+      camera.position.z += e.deltaY * 0.05;
+      camera.position.z = Math.max(5, Math.min(100, camera.position.z));
     };
 
     renderer.domElement.addEventListener("mousedown", onMouseDown);
@@ -133,12 +232,15 @@ const Renderer3D = ({ polylines = [] }) => {
     renderer.domElement.addEventListener("mouseup", onMouseUp);
     renderer.domElement.addEventListener("wheel", onWheel);
 
-    // ===== ANIMATION LOOP =====
+    // ===== ANIMATION =====
     const animate = () => {
       drawPolylines();
 
-      lineGroup.rotation.x = rotationRef.current.x;
-      lineGroup.rotation.y = rotationRef.current.y;
+      // SMOOTH ROTATION
+      meshGroup.rotation.x +=
+        (rotationRef.current.x - meshGroup.rotation.x) * 0.1;
+      meshGroup.rotation.y +=
+        (rotationRef.current.y - meshGroup.rotation.y) * 0.1;
 
       renderer.render(scene, camera);
       animationRef.current = requestAnimationFrame(animate);
@@ -150,12 +252,10 @@ const Renderer3D = ({ polylines = [] }) => {
     const handleResize = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
-
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
-
     window.addEventListener("resize", handleResize);
 
     // ===== CLEANUP =====
@@ -167,7 +267,7 @@ const Renderer3D = ({ polylines = [] }) => {
       renderer.domElement.removeEventListener("mouseup", onMouseUp);
       renderer.domElement.removeEventListener("wheel", onWheel);
 
-      lineGroup.children.forEach((obj) => {
+      meshGroup.children.forEach((obj) => {
         obj.geometry?.dispose();
         obj.material?.dispose();
       });

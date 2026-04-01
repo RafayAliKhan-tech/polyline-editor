@@ -16,7 +16,7 @@ const SplashScreen = () => {
       .catch((err) => console.error("Lottie Error:", err));
 
     // 4 seconds baad auto-navigate (User ko animation enjoy karne dein)
-    const timer = setTimeout(() => navigate("/canvas-select"), 4000);
+    const timer = setTimeout(() => navigate("/canvas-background"), 4000);
     return () => clearTimeout(timer);
   }, [navigate]);
 
@@ -67,7 +67,7 @@ const SplashScreen = () => {
         whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
         whileTap={{ scale: 0.95 }}
         style={styles.skipBtn} 
-        onClick={() => navigate("/canvas-select")}
+        onClick={() => navigate("/canvas-background")}
       >
         Skip Intro
       </motion.button>

@@ -158,7 +158,7 @@ const Renderer3D = ({ polylines = [] }) => {
       
       const shape = new THREE.Shape(shapePoints);
       const geometry = new THREE.ExtrudeGeometry(shape, {
-        depth: 3, // Block thickness
+        depth: 15, // Block thickness
         bevelEnabled: true,
         bevelThickness: 0.2,
         bevelSize: 0.1,

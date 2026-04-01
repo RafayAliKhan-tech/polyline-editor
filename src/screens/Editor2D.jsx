@@ -51,7 +51,7 @@ const Editor2D = () => {
   });
 
   const handleQuit = () => {
-    if (window.confirm("Exit editor?")) navigate("/canvas-select");
+    if (window.confirm("Exit editor?")) navigate("/canvas-background");
   };
 
   // Shortcuts

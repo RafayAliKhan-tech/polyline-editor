@@ -100,12 +100,17 @@ export default function useCanvasController2D(canvasRef, color) {
   };
 
   // ================= POLYLINE =================
-  const finishPolyline = () => {
+  const finishPolyline = (closeShape = false) => {
     if (!currentPolyline) return;
 
     const verts = currentPolyline.getVertices();
     if (verts.length > 1) {
       currentPolyline.removeVertexById(currentPolyline.tail.id);
+      if (closeShape && verts.length > 2) {
+        // connect last vertex to first to close
+        const first = verts[0];
+        currentPolyline.addVertex(first.x, first.y, null, first.color);
+      }
     }
 
     setCurrentPolyline(null);
@@ -128,6 +133,7 @@ export default function useCanvasController2D(canvasRef, color) {
 
       let poly = currentPolyline;
 
+      // ===== First click, start polyline =====
       if (!poly) {
         poly = new Polyline2D();
         poly.addVertex(x, y, null, color);
@@ -135,13 +141,22 @@ export default function useCanvasController2D(canvasRef, color) {
 
         setCurrentPolyline(poly);
         setPolylines((prev) => [...prev, poly]);
-      } else {
-        poly.tail.x = x;
-        poly.tail.y = y;
-        poly.addVertex(x, y, null, color);
-        setPolylines((prev) => [...prev]);
+        setAction("ADDING_VERTEX");
+        return;
       }
 
+      // ===== Check if click is near first vertex (close shape) =====
+      const firstVertex = poly.getVertices()[0];
+      if (firstVertex && Math.hypot(firstVertex.x - x, firstVertex.y - y) <= THRESHOLD) {
+        finishPolyline(true);
+        return;
+      }
+
+      // ===== Otherwise add new vertex normally =====
+      poly.tail.x = x;
+      poly.tail.y = y;
+      poly.addVertex(x, y, null, color);
+      setPolylines((prev) => [...prev]);
       setAction("ADDING_VERTEX");
     }
 

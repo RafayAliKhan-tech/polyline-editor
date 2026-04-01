@@ -1,22 +1,28 @@
 // src/screens/Editor2D.jsx
 import React, { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import useCanvasController2D from "../controllers/CanvasController2D";
 import useCanvasInteraction from "../hooks/useCanvasInteraction";
 import Renderer2D from "../views/Renderer2D";
 import StatusBar from "../components/StatusBar/StatusBar";
 import Toolbar from "../components/Toolbar/Toolbar";
-import TopBar from "../components/TopBar/TopBar"; // Naya TopBar import karein
+import TopBar from "../components/TopBar/TopBar";
 import Renderer3D from "../views/Renderer3D";
-import { useEditor } from "../context/EditorContext"; // add this if not already
-import { useLocation } from "react-router-dom";
+import { useEditor } from "../context/EditorContext";
 
 const Editor2D = () => {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [activeTool, setActiveTool] = useState("draw");
   const [color, setColor] = useState("#4ade80");
+
+  // Style States
+  const [strokeWidth, setStrokeWidth] = useState(3);
+  const [opacity, setOpacity] = useState(100);
+  const [activeTab, setActiveTab] = useState("style");
+  const [showContextMenu, setShowContextMenu] = useState(true);
 
   const {
     polylines, mode, setMode, selectedVertexId, selectedVertices,
@@ -27,13 +33,9 @@ const Editor2D = () => {
 
   const { mode: viewMode, MODES } = useEditor();
 
-  const location = useLocation();
-
   const {
-    width,
-    height,
     backgroundType = "grid",
-    backgroundColor = "#0a0f1a"
+    backgroundColor = "#7c3aed"
   } = location.state || {};
 
   useEffect(() => {
@@ -41,23 +43,30 @@ const Editor2D = () => {
   }, [mode]);
 
   useCanvasInteraction({
-    canvasRef, handleMouseDown, handleMouseMove, handleMouseUp, handleDoubleClick,
+    canvasRef,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleDoubleClick,
   });
 
   const handleQuit = () => {
     if (window.confirm("Exit editor?")) navigate("/canvas-select");
   };
 
+  // Shortcuts
   useEffect(() => {
     const handleKeys = (e) => {
       const key = e.key.toLowerCase();
       if (key === "q") return handleQuit();
-      if (key === "z") return undo();
-      if (key === "y") return redo();
+      if (e.ctrlKey && key === "z") return undo();
+      if (e.ctrlKey && key === "y") return redo();
       if (key === "r") return reset();
+
       const map = { b: "DRAW", m: "MOVE", d: "DELETE", i: "INSERT", s: "SELECT", p: "PAN" };
       if (map[key]) setMode(map[key]);
     };
+
     window.addEventListener("keydown", handleKeys);
     return () => window.removeEventListener("keydown", handleKeys);
   }, [setMode, undo, redo, reset]);
@@ -70,51 +79,18 @@ const Editor2D = () => {
   }, [handleWheel]);
 
   return (
-    <div style={{
-      ...styles.container,
-      background: backgroundType === "color" ? backgroundColor : styles.container.background
-    }}>
-
-      {/* 🛠 LEFT SIDEBAR (Ab sirf Tools aur Undo/Redo/Reset ke liye) */}
-      <Toolbar
-        activeTool={activeTool}
-        setActiveTool={setActiveTool}
-        // setMode={setMode}
-        undo={undo}
-        redo={redo}
-        reset={reset}
-        onQuit={handleQuit}
+    <div style={{ ...styles.container, background: backgroundType === "color" ? backgroundColor : styles.container.background }}>
+      <Toolbar 
+        activeTool={activeTool} 
+        setActiveTool={setActiveTool} 
+        setMode={setMode} 
+        undo={undo} redo={redo} reset={reset} onQuit={handleQuit} 
       />
 
-      {/* 🖥 MAIN AREA */}
-      <div style={{
-        ...styles.mainArea,
-        background: backgroundType === "color" ? backgroundColor : styles.mainArea.background
-      }}>
+      <div style={{ ...styles.mainArea, background: backgroundType === "color" ? backgroundColor : styles.mainArea.background }}>
+        <TopBar zoom={zoom} saveToFile={saveToFile} loadFromFile={loadFromFile} exportSVG={exportSVG} exportOBJ={exportOBJ} />
 
-        {/* 📑 TOPBAR (Save, Load, Export yahan shift ho gaye hain) */}
-        <TopBar
-          zoom={zoom}
-          saveToFile={saveToFile}
-          loadFromFile={loadFromFile}
-          exportSVG={exportSVG}
-          exportOBJ={exportOBJ}
-        />
-
-        {/* 🖱 CONTEXT POPUP (Screenshot jaisa floating menu) */}
-        {(selectedVertexId || selectedVertices?.length > 0) && (
-          <div style={styles.contextMenu}>
-            <div style={styles.contextHeader}>
-              <span>✥ Move</span>
-              <span style={{ cursor: 'pointer' }}>✕</span>
-            </div>
-            <div style={styles.contextItem} onClick={() => setMode("MOVE")}><span>✕</span> X</div>
-            <div style={styles.contextItem} onClick={() => setMode("MOVE")}><span>✥</span> Move</div>
-            <div style={styles.contextItem} onClick={() => setMode("DELETE")}><span>🗑</span> Delete</div>
-          </div>
-        )}
-
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           {viewMode === MODES.EDIT_2D && (
             <Renderer2D
               canvasRef={canvasRef}
@@ -125,87 +101,67 @@ const Editor2D = () => {
               zoom={zoom}
               offset={offset}
               showGrid={backgroundType === "grid"}
-              backgroundColor={backgroundColor}
+              backgroundColor={backgroundType === "grid" ? "#0a0f1a" : backgroundColor}
+              gridColor={backgroundColor}
+              // ✅ PASSING NEW PROPS HERE
+              strokeWidth={strokeWidth}
+              opacity={opacity}
             />
           )}
 
-          {viewMode === MODES.PREVIEW_3D && (
-            <Renderer3D
-              polylines={polylines}  // We'll use these later to render the 3D mesh
-            // optional: camera or lighting props if needed
-            />
-          )}
+          {viewMode === MODES.PREVIEW_3D && <Renderer3D polylines={polylines} />}
         </div>
 
         <StatusBar mode={mode} action={action} coords={coords} />
       </div>
 
-      {/* ⚙️ RIGHT PANEL (Properties) */}
+      {/* Right Panel */}
       <div style={styles.rightPanel}>
-        <div style={styles.panelHeader}>
-          <span>Properties</span>
-          <span style={{ fontSize: '18px' }}>›</span>
-        </div>
-
+        <div style={styles.panelHeader}><span>Properties</span></div>
         <div style={styles.tabs}>
-          <span style={styles.activeTab}>Style</span>
-          <span>Design</span>
-          <span>Export</span>
+          {["style", "design", "export"].map((tab) => (
+            <span key={tab} onClick={() => setActiveTab(tab)} style={activeTab === tab ? styles.activeTab : {}}>{tab}</span>
+          ))}
         </div>
 
-        <div style={styles.section}>
-          <label style={styles.label}>Color</label>
-          <div style={styles.colorPalette}>
-            {["#9e1212", "#c96c1a", "#b5a31a", "#1a7d32", "#1a5b7d", "#4b1a7d", "#121212", "#ffffff"].map(c => (
-              <div
-                key={c}
-                onClick={() => setColor(c)}
-                style={{ ...styles.colorBox, background: c, border: color === c ? '2px solid #fff' : '1px solid #333' }}
-              />
-            ))}
-          </div>
-        </div>
+        {activeTab === "style" && (
+          <>
+            <div style={styles.section}>
+              <label style={styles.label}>Color</label>
+              <div style={styles.colorPalette}>
+                {["#9e1212","#c96c1a","#b5a31a","#1a7d32","#1a5b7d","#4b1a7d","#121212","#ffffff"].map((c) => (
+                  <div key={c} onClick={() => setColor(c)} style={{ ...styles.colorBox, background: c, border: color === c ? "2px solid #fff" : "1px solid #333" }} />
+                ))}
+              </div>
+            </div>
 
-        <div style={styles.section}>
-          <label style={styles.label}>Stroke Width</label>
-          <div style={styles.strokeSelector}>—— 3 px</div>
-          <div style={styles.strokeLines}>
-            <div style={{ height: '1px', background: '#444', width: '100%' }} />
-            <div style={{ height: '3px', background: '#888', width: '100%' }} />
-            <div style={{ height: '5px', background: color, width: '100%' }} />
-          </div>
-        </div>
+            <div style={styles.section}>
+              <label style={styles.label}>Stroke Width ({strokeWidth}px)</label>
+              <input type="range" min="1" max="20" value={strokeWidth} onChange={(e) => setStrokeWidth(+e.target.value)} style={{ width: "100%" }} />
+            </div>
 
-        <div style={styles.section}>
-          <label style={styles.label}>Opacity</label>
-          <input type="range" style={{ width: '100%', accentColor: color }} />
-          <div style={{ textAlign: 'right', fontSize: '10px', marginTop: '5px' }}>100%</div>
-        </div>
+            <div style={styles.section}>
+              <label style={styles.label}>Opacity ({opacity}%)</label>
+              <input type="range" min="10" max="100" value={opacity} onChange={(e) => setOpacity(+e.target.value)} style={{ width: "100%" }} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 const styles = {
-  container: { display: "flex", height: "100vh", background: "#1a1b1e", color: "#fff", fontFamily: 'sans-serif', overflow: 'hidden' },
-
-  mainArea: { flex: 1, display: "flex", flexDirection: "column", position: "relative", background: "#25262b" },
-
-  contextMenu: { position: "absolute", bottom: "80px", left: "20px", width: "160px", background: "#fff", color: "#333", borderRadius: "8px", boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 20 },
-  contextHeader: { display: 'flex', justifyContent: 'space-between', padding: '10px', fontSize: '12px', fontWeight: 'bold', borderBottom: '1px solid #eee' },
-  contextItem: { padding: '10px', display: 'flex', gap: '10px', cursor: 'pointer', fontSize: '12px', transition: 'background 0.2s' },
-
-  // Panels
-  rightPanel: { width: "240px", background: "#25262b", borderLeft: "1px solid #373a40", padding: "20px" },
-  panelHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontWeight: 'bold' },
-  tabs: { display: 'flex', gap: '15px', marginBottom: '20px', fontSize: '13px', color: '#909296', borderBottom: '1px solid #373a40', paddingBottom: '10px' },
-  activeTab: { color: '#4ade80', borderBottom: '2px solid #4ade80', paddingBottom: '10px' },
-  section: { marginBottom: '25px' },
-  label: { fontSize: '11px', color: '#909296', marginBottom: '10px', display: 'block' },
-  colorPalette: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' },
-  colorBox: { height: '25px', borderRadius: '4px', cursor: 'pointer' },
-  strokeSelector: { background: '#2c2e33', padding: '8px', borderRadius: '4px', textAlign: 'center', fontSize: '12px', marginBottom: '10px' },
-  strokeLines: { display: 'flex', flexDirection: 'column', gap: '8px' }
+  container: { display: "flex", height: "100vh", background: "#1a1b1e", color: "#fff" },
+  mainArea: { flex: 1, display: "flex", flexDirection: "column", background: "#25262b" },
+  rightPanel: { width: "240px", background: "#25262b", padding: "20px", borderLeft: "1px solid #333" },
+  panelHeader: { marginBottom: "20px", fontWeight: "bold" },
+  tabs: { display: "flex", gap: "15px", marginBottom: "20px", cursor: "pointer", fontSize: "12px", textTransform: "uppercase" },
+  activeTab: { color: "#4ade80", borderBottom: "2px solid #4ade80" },
+  section: { marginBottom: "25px" },
+  label: { fontSize: "11px", marginBottom: "10px", display: "block", color: "#888" },
+  colorPalette: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" },
+  colorBox: { height: "25px", borderRadius: "4px", cursor: "pointer" }
 };
 
 export default Editor2D;

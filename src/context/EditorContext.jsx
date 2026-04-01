@@ -1,3 +1,4 @@
+//src/context/EditorContext.jsx
 import { createContext, useContext, useState } from "react";
 
 // Create context

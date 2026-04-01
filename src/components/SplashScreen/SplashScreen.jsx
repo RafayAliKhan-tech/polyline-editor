@@ -47,7 +47,7 @@ const SplashScreen = () => {
         style={styles.content}
       >
         <h1 style={styles.logoText}>
-          Polyline<span style={{ color: "#00d2ff" }}>Editor</span>
+          Polyline<span style={{ color: "#00d2ff" }}>Studio</span>
         </h1>
         <p style={styles.subtitle}>Precision. Efficiency. Simplicity.</p>
 

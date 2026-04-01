@@ -13,7 +13,6 @@ const AppRoutes = () => {
       <Route path="/" element={<SplashScreenPage />} />
       <Route path="/canvas-select" element={<CanvasSelectionPage />} />
       <Route path="/canvas-background" element={<CanvasBackgroundPage />} />
-      {/* <Route path="/editor" element={<Editor2D />} /> */}
       <Route path="/editor" element={<Canvas2DPage />} />
     </Routes>
   );

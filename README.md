@@ -4,21 +4,37 @@ A modern interactive Polyline Editor built using React.js and Three.js, allowing
 🚀 Features
 
 ✏️ 2D Polyline Editor
+
 Draw, move, delete, and insert points with real-time feedback
+
 🔁 Undo / Redo Support
+
 Easily correct and manage editing actions
+
 🔍 Zoom & Pan
+
 Flexible navigation for better workspace control
+
 🎯 Grid & Snapping
+
 Precise point placement for accurate drawing
+
 🎨 Styling Options
+
 Customize color, stroke width, and opacity
+
 🧩 Insert Between Vertices
+
 Add points dynamically inside polylines
+
 🌐 3D Preview (Highlighted Feature ⭐)
+
 Visualize 2D polylines in a 3D environment using Three.js
+
 💾 Save / Load / Export
+
 Manage files (SVG / OBJ / JSON)
+
 📘 User Guide Included
 
 🛠 Tech Stack

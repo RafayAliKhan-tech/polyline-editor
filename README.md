@@ -1,16 +1,30 @@
-# React + Vite
+Polyline Studio with 3D Preview
+A modern interactive Polyline Editor built using React.js and Three.js, allowing users to create, edit, and visualize polylines in both 2D and 3D environments.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🚀 Features
+✏️ 2D Polyline Editor
+Draw, move, delete, and insert points with real-time feedback
+🔁 Undo / Redo Support
+Easily correct and manage editing actions
+🔍 Zoom & Pan
+Flexible navigation for better workspace control
+🎯 Grid & Snapping
+Precise point placement for accurate drawing
+🎨 Styling Options
+Customize color, stroke width, and opacity
+🧩 Insert Between Vertices
+Add points dynamically inside polylines
+🌐 3D Preview (Highlighted Feature ⭐)
+Visualize 2D polylines in a 3D environment using Three.js
+💾 Save / Load / Export
+Manage files (SVG / OBJ / JSON)
+📘 User Guide Included
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+🛠 Tech Stack
+React.js – UI & State Management
+Three.js – 3D Rendering & Visualization
 
-## React Compiler
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+🎯 Project Goal
+To build a lightweight yet powerful polyline editor that combines 2D editing with 3D visualization, providing a smooth and user-friendly drawing experience.
